@@ -7,25 +7,27 @@ minetest.register_entity("soccer:ball", {
 	mesh = "soccer_ball.x",
 	hp_max = 1000,
 	groups = { immortal = true },
-	textures = { "wool_white.png" },
+	textures = { "soccer_ball.png" },
 	collisionbox = { -0.2, -0.2, -0.2, 0.2, 0.2, 0.2 },
 	on_step = function(self, dtime)
 		self.timer = self.timer + dtime
 		if self.timer >= BALL_PUSH_CHECK_INTERVAL then
+			self.object:setacceleration({x=0, y=-10, z=0})
 			self.timer = 0
-			if self:is_moving() then
-				local p = self.object:getpos();
-				p.y = p.y - 0.5
-				local walkable = minetest.registered_nodes[minetest.env:get_node(p).name].walkable
-				print("walkable: "..tostring(walkable))
-				if walkable then
-					local vel = self.object:getvelocity()
-					vel.x = vel.x * 0.80
-					vel.z = vel.z * 0.80
-					self.object:setvelocity(vel)
-					--return
-				end
+			local vel = self.object:getvelocity()
+			local p = self.object:getpos();
+			p.y = p.y - 0.5
+			if minetest.registered_nodes[minetest.env:get_node(p).name].walkable then
+				vel.x = vel.x * 0.80
+				if vel.y < 0 then vel.y = vel.y * -0.50 end
+				vel.z = vel.z * 0.80
 			end
+			if  (math.abs(vel.x) < 0.1)
+			 and (math.abs(vel.z) < 0.1) then
+				vel.x = 0
+				vel.z = 0
+			end
+			self.object:setvelocity(vel)
 			local pos = self.object:getpos()
 			local objs = minetest.env:get_objects_inside_radius(pos, 1)
 			local player_count = 0
@@ -47,13 +49,7 @@ minetest.register_entity("soccer:ball", {
 				final_dir.x = (final_dir.x * 5) / player_count
 				final_dir.y = (final_dir.y * 5) / player_count
 				final_dir.z = (final_dir.z * 5) / player_count
-				local accel = {
-					x = 0,
-					y = -(final_dir.y / 2) - 4,
-					z = 0,
-				}
 				self.object:setvelocity(final_dir)
-				self.object:setacceleration(accel)
 			end
 		end
 	end,
@@ -67,9 +63,10 @@ minetest.register_entity("soccer:ball", {
 	is_moving = function(self)
 		local v = self.object:getvelocity()
 		if  (math.abs(v.x) <= 0.1)
-		 and (math.abs(v.y) <= 0.1)
 		 and (math.abs(v.z) <= 0.1) then
-			self.object:setvelocity({x=0, y=0, z=0})
+			v.x = 0
+			v.z = 0
+			self.object:setvelocity(v)
 			return false
 		end
 		return true
@@ -79,7 +76,7 @@ minetest.register_entity("soccer:ball", {
 
 minetest.register_craftitem("soccer:ball_item", {
 	description = "Soccer Ball",
-	inventory_image = "default_sand.png",
+	inventory_image = "soccer_ball_inv.png",
 	on_place = function(itemstack, placer, pointed_thing)
 		local pos = pointed_thing.above
 		--pos = { x=pos.x+0.5, y=pos.y, z=pos.z+0.5 }
@@ -108,10 +105,16 @@ minetest.register_node("soccer:goal", {
 	},
 })
 
+local nb_decal = {
+	type = "fixed",
+	fixed = {{ -0.5, -0.5, -0.5, 0.5, -0.499, 0.5 }},
+},
+
 minetest.register_node("soccer:goal_mark", {
 	description = "Soccer Goal Mark",
-	drawtype = "raillike",
+	drawtype = "nodebox",
 	paramtype = "light",
+	node_box = nb_decal,
 	walkable = false,
 	inventory_image = "soccer_goal_mark.png",
 	tiles = { "soccer_goal_mark.png" },
@@ -119,30 +122,38 @@ minetest.register_node("soccer:goal_mark", {
 	groups = { snappy=1, cracky=1, fleshy=1, oddly_breakable_by_hand=1 },
 })
 
-soccer = {}
-
-soccer.matches = { count = 0 }
-
-function soccer:create_match()
-	for n = 1, self.matches.count do
-		if not self.matches[id] then
-			self.matches[id] = {
-				players = { },
-			}
-			return id
-		end
-	end
+local function reg_decal(name, desc)
+	texture = "soccer_"..name..".png"
+	minetest.register_node("soccer:"..name, {
+		description = desc,
+		drawtype = "nodebox",
+		paramtype = "light",
+		paramtype2 = "facedir",
+		node_box = nb_decal,
+		walkable = false,
+		inventory_image = texture,
+		wield_image = texture,
+		tiles = { texture },
+		sunlight_propagates = true,
+		groups = { snappy=1, cracky=1, fleshy=1, oddly_breakable_by_hand=1 },
+	})
 end
 
-function soccer:match_score(id, player)
-	
-end
+reg_decal("line_i", "Straight Line")
+reg_decal("line_l", "L line")
+reg_decal("line_t", "T Line")
+reg_decal("line_p", "+ Line")
+reg_decal("line_d", "Diagonal Line")
+reg_decal("line_point", "Point")
+reg_decal("line_corner", "Corner")
 
-minetest.register_node("soccer:controller", {
-	description = "Soccer Goal Mark",
-	drawtype = "raillike",
-	paramtype = "light",
-	tiles = { "soccer_goal_mark.png" },
-	sunlight_propagates = true,
-	groups = { snappy=1, cracky=1, fleshy=1, oddly_breakable_by_hand=1 },
+minetest.register_craft({
+	output = "soccer:ball_item",
+	recipe = {
+		{ "", "wool:white", "" },
+		{ "wool:white", "default:coal_lump", "wool:white" },
+		{ "", "wool:white", "" },
+	},
 })
+
+minetest.register_alias("ball", "soccer:ball_item")
