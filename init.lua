@@ -27,7 +27,7 @@ minetest.register_entity("soccer:ball", {
 				end
 			end
 			local pos = self.object:getpos()
-			local objs = minetest.get_objects_inside_radius(pos, 1)
+			local objs = minetest.env:get_objects_inside_radius(pos, 1)
 			local player_count = 0
 			local final_dir = { x=0, y=0, z=0 }
 			for _,obj in ipairs(objs) do
