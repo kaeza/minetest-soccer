@@ -15,3 +15,10 @@ right-click. You can take it again by punching it.
 You can push the ball by standing near it, and kick it by holding the "sneak"
 key (by default "Shift"). The ball will get pushed/kicked in the direction the
 player is facing (you can center-on the ball by looking up).
+
+
+Special thanks
+--------------
+- 12Me21: Ideas about the crafting recipe.
+- ecube: Original (black) texture.
+- Xiug: Ideas and textures.
